@@ -279,7 +279,34 @@ python mcp_client.py
 | `mcp_client.py` | Async client with SSE support |
 | `mcp_stdio_server.py` | Stdio transport variant |
 | `mcp_server_observable.py` | Server with full observability |
-| `README.md` | This documentation |
+| `mcp_diagnostics.py` | Diagnostic test suite |
+| `mcp_cli.py` | Developer CLI toolkit |
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [README.md](README.md) | This documentation |
+| [API.md](API.md) | Complete API reference |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Troubleshooting guide |
+
+## Examples
+
+| Example | Description |
+|---------|-------------|
+| [`examples/claude_integration.py`](examples/claude_integration.py) | Claude API integration |
+| [`examples/langchain_integration.py`](examples/langchain_integration.py) | LangChain integration |
+| [`examples/example_server.py`](examples/example_server.py) | Extended server with real tools |
+
+## Tests
+
+```bash
+# Run unit tests
+cd v3 && pytest tests/ -v
+
+# Run diagnostic tests against running server
+python mcp_diagnostics.py --server http://localhost:8000 -v
+```
 
 ---
 
