@@ -1,4 +1,18 @@
+# MCP Implementation Dependencies
+# ================================
+
+# Core dependencies
 pydantic>=2.0.0
 typing-extensions>=4.0.0
+python-dotenv>=1.0.0
+
+# HTTP/Async dependencies (for v3 Streamable HTTP transport)
+aiohttp>=3.9.0
+aiohttp-sse>=2.1.0
+aiohttp-sse-client>=0.2.1
+
+# HTTP client (for v2 and simple HTTP requests)
+requests>=2.31.0
+
+# OpenAI integration (optional, for AI features in v1/v2)
 openai>=1.0.0
-python-dotenv>=1.0.0 
