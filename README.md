@@ -1,210 +1,201 @@
 # Model Context Protocol (MCP) Implementations
 
-This repository contains three independent implementations of the Model Context Protocol, each demonstrating different aspects and versions of the specification.
+This repository contains multiple implementations of the Model Context Protocol, demonstrating the evolution from basic concepts to production-ready implementations.
+
+## Recommended: v3 Implementation
+
+**For production use, start with `v3/`** - it provides a fully compliant MCP implementation with proper Streamable HTTP transport.
+
+```bash
+# Quick start with v3
+pip install -r requirements.txt
+cd v3
+python mcp_server.py --port 8000
+
+# In another terminal
+python mcp_client.py --mode demo
+```
 
 ## Implementations Overview
 
-### 1. Simple MCP Implementation (`simple/`)
-- **Specification**: Basic MCP concepts
-- **Features**: In-memory resources, hardcoded tools, no AI integration
-- **Purpose**: Protocol demonstration and learning foundation
-- **Documentation**: [Simple Implementation Guide](simple/simple_implementation.md)
+| Version | Specification | Transport | Production Ready |
+|---------|--------------|-----------|------------------|
+| **v3** (Recommended) | 2024-11-05 | Streamable HTTP + SSE | Yes |
+| v2 | Custom | HTTP (mock) | No |
+| v1 | 2024-11-05 | Stdio | Educational |
+| simple | Basic | Stdio | Educational |
 
-### 2. MCP v1 Implementation (`v1/`) 
+### v3 - Production Ready (`v3/`)
+- **Specification**: Official 2024-11-05
+- **Transport**: Streamable HTTP (POST + SSE) and Stdio
+- **Features**:
+  - Real HTTP server with `aiohttp`
+  - Server-Sent Events for notifications
+  - Progress updates for long-running operations
+  - Resource subscriptions
+  - Multi-client session management
+- **Documentation**: [v3 README](v3/README.md)
+
+### v2 - Educational (`v2/`)
+- **Specification**: Custom (fictional 2025-06-18)
+- **Status**: Educational only - has architectural issues
+- **Issues**:
+  - No actual HTTP server (REPL-based)
+  - Mock OAuth implementation
+  - Non-standard tools/call schema
+- **Documentation**: [v2 Implementation Guide](v2/mcp_v2_implementation.md)
+
+### v1 - Educational (`v1/`)
 - **Specification**: 2024-11-05
-- **Features**: OpenAI integration, conversation history, AI-driven tool selection
-- **Purpose**: Production-ready AI-powered MCP server
-- **Documentation**: [MCP v1 Implementation Guide](v1/mcp_v1_implementation.md)
+- **Features**: OpenAI integration, conversation history
+- **Transport**: Stdio only
+- **Documentation**: [v1 Implementation Guide](v1/mcp_v1_implementation.md)
 
-### 3. MCP v2 Implementation (`v2/`)
-- **Specification**: 2025-06-18 (Latest)
-- **Features**: OAuth 2.0 authorization, resource indicators (RFC 8707), structured output, enhanced security
-- **Purpose**: Latest specification with advanced security and features
-- **Documentation**: [MCP v2 Implementation Guide](v2/mcp_v2_implementation.md)
+### Simple - Learning (`simple/`)
+- **Purpose**: Basic protocol demonstration
+- **Features**: In-memory resources, hardcoded tools, no AI
+- **Documentation**: [Simple Implementation Guide](simple/simple_implementation.md)
 
 ## Quick Start
 
 ### Prerequisites
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### Environment Setup
+### Running v3 (Recommended)
+
 ```bash
-cp env.example .env
-# Edit .env to add your OpenAI API key for v1 and v2 servers
+# HTTP Server
+cd v3
+python mcp_server.py --port 8000
+
+# In another terminal - Interactive client
+python mcp_client.py --server http://localhost:8000
+
+# Or run demo
+python mcp_client.py --mode demo
 ```
 
-### Running Different Implementations
+### Stdio Mode (for subprocess usage)
 
-#### Simple Implementation (No AI)
 ```bash
-# Terminal 1: Start server
-cd simple
-python simple_mcp_server.py
-
-# Terminal 2: Start client
-cd simple
-python simple_test_client.py
-```
-
-#### MCP v1 Implementation (AI-Powered)
-```bash
-# Terminal 1: Start server
-cd v1
-python mcp_v1_server.py
-
-# Terminal 2: Start client
-cd v1
-python mcp_v1_client.py --mode interactive
-```
-
-#### MCP v2 Implementation (Latest Spec with Auth)
-```bash
-# Terminal 1: Start server
-cd v2
-python mcp_v2_server.py
-
-# Terminal 2: Start client with authentication
-cd v2
-python mcp_v2_client.py --auth --mode interactive
+cd v3
+python mcp_stdio_server.py
 ```
 
 ## Feature Comparison
 
-| Feature | Simple | v1 (2024-11-05) | v2 (2025-06-18) |
-|---------|--------|-----------------|-----------------|
-| **AI Integration** | ❌ | ✅ | ✅ |
-| **OAuth Support** | ❌ | ❌ | ✅ |
-| **Resource Indicators** | ❌ | ❌ | ✅ |
-| **Structured Output** | ❌ | ❌ | ✅ |
-| **Protocol Headers** | ❌ | ❌ | ✅ |
-| **Enhanced Security** | ❌ | ❌ | ✅ |
-| **Resource Links** | ❌ | ❌ | ✅ |
-| **Elicitation** | ❌ | ❌ | ✅ |
-| **Rate Limiting** | ❌ | ❌ | ✅ |
-| **Caching** | ❌ | ❌ | ✅ |
+| Feature | simple | v1 | v2 | v3 |
+|---------|--------|----|----|-----|
+| **Real HTTP Server** | - | - | No | Yes |
+| **SSE Streaming** | - | - | No | Yes |
+| **Progress Notifications** | - | - | No | Yes |
+| **Resource Subscriptions** | - | - | No | Yes |
+| **Session Management** | - | - | No | Yes |
+| **Stdio Transport** | Yes | Yes | No | Yes |
+| **Protocol Compliant** | Partial | Yes | No | Yes |
+| **AI Integration** | No | Yes | Yes | Optional |
+
+## Protocol Methods (v3)
+
+| Category | Method | Description |
+|----------|--------|-------------|
+| Lifecycle | `initialize` | Initialize connection |
+| | `initialized` | Confirm initialization |
+| | `ping` | Health check |
+| Tools | `tools/list` | List available tools |
+| | `tools/call` | Execute a tool |
+| Resources | `resources/list` | List resources |
+| | `resources/read` | Read a resource |
+| | `resources/subscribe` | Subscribe to changes |
+| | `resources/unsubscribe` | Unsubscribe |
+| | `resources/templates/list` | List URI templates |
+| Prompts | `prompts/list` | List prompts |
+| | `prompts/get` | Get prompt content |
+| Utilities | `logging/setLevel` | Set log level |
+| | `completion/complete` | Argument completion |
 
 ## Directory Structure
 
 ```
 mcp/
-├── simple/                          # Simple implementation (no AI)
-│   ├── simple_mcp_server.py
-│   ├── simple_test_client.py
-│   ├── simple_implementation.md
+├── v3/                              # Production-ready (RECOMMENDED)
+│   ├── mcp_server.py                # HTTP server with SSE
+│   ├── mcp_client.py                # Async client
+│   ├── mcp_stdio_server.py          # Stdio transport
 │   └── README.md
-├── v1/                              # MCP v1 implementation (2024-11-05 spec)
-│   ├── mcp_v1_server.py
-│   ├── mcp_v1_client.py
-│   ├── mcp_v1_implementation.md
-│   └── README.md
-├── v2/                              # MCP v2 implementation (2025-06-18 spec)
+├── v2/                              # Educational (has issues)
 │   ├── mcp_v2_server.py
 │   ├── mcp_v2_client.py
-│   ├── mcp_v2_implementation.md
-│   └── README.md
-├── env.example                      # Environment variables template
+│   └── mcp_v2_implementation.md
+├── v1/                              # Educational (stdio only)
+│   ├── mcp_v1_server.py
+│   ├── mcp_v1_client.py
+│   └── mcp_v1_implementation.md
+├── simple/                          # Basic learning
+│   ├── simple_mcp_server.py
+│   ├── simple_test_client.py
+│   └── simple_implementation.md
 ├── requirements.txt                 # Python dependencies
+├── env.example                      # Environment template
 └── README.md                        # This file
 ```
 
-## Client Commands
+## Client Commands (v3)
 
-### Interactive Mode Commands (v1 & v2)
-- `/tools` - List available tools
-- `/resources` - List available resources  
-- `/prompts` - List available prompts
-- `/auth` - Authenticate with OAuth (v2 only)
-- `/tool tool_name arg1=value1` - Call a specific tool
-- `/resource uri` - Read a specific resource
-- `/quit` - Exit the client
-
-### Demo Mode
-```bash
-# v1 demo
-cd v1
-python mcp_v1_client.py --mode demo
-
-# v2 demo
-cd v2
-python mcp_v2_client.py --mode demo
+```
+/tools              - List available tools
+/call <name> [json] - Call a tool
+/resources          - List resources
+/read <uri>         - Read a resource
+/subscribe <uri>    - Subscribe to resource
+/prompts            - List prompts
+/prompt <name> [json] - Get a prompt
+/ping               - Ping server
+/status             - Read server status
+/help               - Show help
+/quit               - Exit
 ```
 
-## Security Features (v2)
+## Environment Setup
 
-### OAuth 2.0 Authorization
-- Resource Server implementation
-- Scope-based access control
-- Token validation and verification
-- Resource indicator validation (RFC 8707)
+For AI features in v1/v2:
 
-### Enhanced Security
-- Protocol version headers
-- Input validation
-- Rate limiting
-- Secure error handling
-
-## Development
-
-### Testing Different Implementations
-
-1. **Simple**: Test basic MCP concepts without AI
-   ```bash
-   cd simple
-   python simple_mcp_server.py
-   ```
-
-2. **v1**: Test AI-powered features with OpenAI
-   ```bash
-   cd v1
-   python mcp_v1_server.py
-   ```
-
-3. **v2**: Test latest specification with OAuth and enhanced security
-   ```bash
-   cd v2
-   python mcp_v2_server.py
-   ```
-
-### Debug Mode
-```python
-import logging
-logging.basicConfig(level=logging.DEBUG)
+```bash
+cp env.example .env
+# Edit .env to add your OpenAI API key
 ```
 
 ## Troubleshooting
 
-### Common Issues
+### v3 Connection Issues
+```bash
+# Check server is running
+curl http://localhost:8000/health
 
-1. **OpenAI API Key Missing**
-   - Ensure `.env` file contains `OPENAI_API_KEY`
-   - Required for v1 and v2 implementations
+# Check SSE endpoint
+curl http://localhost:8000/mcp/sse
+```
 
-2. **Authentication Failures (v2)**
-   - Check OAuth configuration
-   - Verify resource indicators
-   - Ensure proper token format
+### Dependency Issues
+```bash
+pip install --upgrade aiohttp aiohttp-sse aiohttp-sse-client
+```
 
-3. **Protocol Version Mismatch**
-   - Use matching client/server versions
-   - Check protocol version headers
+### OpenAI API Key (v1/v2)
+- Ensure `.env` file contains `OPENAI_API_KEY`
+- Required only for AI-powered features
 
-### Getting Help
+## Migration from v2 to v3
 
-- Check the specific implementation documentation in each directory
-- Review error messages in the console
-- Enable debug logging for detailed information
-
-## Contributing
-
-Each implementation is designed to be independent and self-contained. When contributing:
-
-1. Choose the appropriate implementation directory to modify
-2. Follow the existing code style and patterns
-3. Update the corresponding documentation
-4. Test with the matching client
+Key changes:
+1. **Transport**: v3 uses real HTTP server, v2 was REPL-based
+2. **tools/call**: v3 uses `{name, arguments}`, v2 used `{calls: [...]}`
+3. **Protocol version**: v3 uses official `2024-11-05`
+4. **Notifications**: v3 implements SSE-based notifications
 
 ## License
 
-This project is open source and available under the MIT License. 
+MIT License
