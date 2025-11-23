@@ -278,4 +278,176 @@ python mcp_client.py
 | `mcp_server.py` | Main server with HTTP transport |
 | `mcp_client.py` | Async client with SSE support |
 | `mcp_stdio_server.py` | Stdio transport variant |
+| `mcp_server_observable.py` | Server with full observability |
 | `README.md` | This documentation |
+
+---
+
+## Observability
+
+The `mcp_server_observable.py` provides full production observability:
+
+### Features
+
+| Feature | Description |
+|---------|-------------|
+| **OpenTelemetry Tracing** | Distributed tracing with Jaeger/OTLP export |
+| **Prometheus Metrics** | Request counts, latencies, errors, sessions |
+| **Structured Logging** | JSON logs with trace correlation |
+| **Request Validation** | Pydantic models for all requests |
+| **Graceful Shutdown** | Proper cleanup on SIGTERM |
+| **Health Endpoints** | `/health` and `/ready` for Kubernetes |
+
+### Quick Start with Observability
+
+```bash
+# Basic usage (console tracing)
+python mcp_server_observable.py --port 8000
+
+# With OTLP exporter (for Jaeger)
+OTEL_EXPORTER=otlp OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 \
+  python mcp_server_observable.py
+
+# Disable tracing
+python mcp_server_observable.py --no-otel
+
+# Full observability stack with Docker
+docker-compose -f docker-compose.observability.yml up -d
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MCP_HOST` | `0.0.0.0` | Server host |
+| `MCP_PORT` | `8000` | Server port |
+| `MCP_SERVER_NAME` | `mcp-server` | Server name for tracing |
+| `OTEL_ENABLED` | `true` | Enable OpenTelemetry |
+| `OTEL_SERVICE_NAME` | `mcp-server` | Service name in traces |
+| `OTEL_EXPORTER` | `console` | Exporter: `console`, `otlp` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTLP endpoint |
+| `METRICS_ENABLED` | `true` | Enable Prometheus metrics |
+| `METRICS_PORT` | `9090` | Prometheus metrics port |
+| `LOG_LEVEL` | `INFO` | Log level |
+| `LOG_FORMAT` | `json` | Log format: `json`, `text` |
+
+### Metrics Exposed
+
+| Metric | Type | Labels | Description |
+|--------|------|--------|-------------|
+| `mcp_requests_total` | Counter | `method` | Total requests |
+| `mcp_request_duration_seconds` | Histogram | `method` | Request latency |
+| `mcp_active_sessions` | Gauge | - | Active sessions |
+| `mcp_tool_calls_total` | Counter | `tool` | Tool invocations |
+| `mcp_errors_total` | Counter | `type` | Errors by type |
+
+### Trace Context
+
+Each trace includes:
+- `mcp.method` - The JSON-RPC method
+- `mcp.session_id` - Client session ID
+- `mcp.protocol_version` - MCP protocol version
+- Child spans for tool execution
+
+### Structured Log Format
+
+```json
+{
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "level": "INFO",
+  "logger": "mcp",
+  "message": "Client initializing",
+  "trace_id": "abc123...",
+  "span_id": "def456...",
+  "client_name": "my-client",
+  "session_id": "sess-789"
+}
+```
+
+### Docker Compose Stack
+
+The `docker-compose.observability.yml` includes:
+
+| Service | Port | Description |
+|---------|------|-------------|
+| `mcp-server` | 8000, 9090 | MCP server with metrics |
+| `jaeger` | 16686, 4317 | Distributed tracing UI |
+| `prometheus` | 9091 | Metrics collection |
+| `grafana` | 3000 | Dashboards (admin/admin) |
+
+```bash
+# Start the stack
+docker-compose -f docker-compose.observability.yml up -d
+
+# Access services
+open http://localhost:8000/health   # MCP Server
+open http://localhost:16686         # Jaeger UI
+open http://localhost:9091          # Prometheus
+open http://localhost:3000          # Grafana
+```
+
+### Grafana Dashboard
+
+A pre-configured dashboard shows:
+- Total requests, sessions, errors, tool calls
+- Request rate by method
+- Request latency (p50, p95)
+- Tool usage over time
+- Error breakdown by type
+
+### Kubernetes Deployment
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-server
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: mcp-server
+        image: mcp-server:latest
+        ports:
+        - containerPort: 8000
+        - containerPort: 9090
+        env:
+        - name: OTEL_EXPORTER
+          value: "otlp"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://jaeger-collector:4317"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+```
+
+### Integrating with Existing Observability
+
+#### Datadog
+```bash
+OTEL_EXPORTER=otlp \
+OTEL_EXPORTER_OTLP_ENDPOINT=http://datadog-agent:4317 \
+python mcp_server_observable.py
+```
+
+#### New Relic
+```bash
+pip install opentelemetry-exporter-otlp
+OTEL_EXPORTER=otlp \
+OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.nr-data.net:4317 \
+OTEL_EXPORTER_OTLP_HEADERS="api-key=YOUR_LICENSE_KEY" \
+python mcp_server_observable.py
+```
+
+#### Grafana Cloud
+```bash
+OTEL_EXPORTER=otlp \
+OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp-gateway-prod-us-central-0.grafana.net/otlp \
+python mcp_server_observable.py
+```

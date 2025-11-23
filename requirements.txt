@@ -16,3 +16,19 @@ requests>=2.31.0
 
 # OpenAI integration (optional, for AI features in v1/v2)
 openai>=1.0.0
+
+# =============================================================================
+# Observability (for mcp_server_observable.py)
+# =============================================================================
+
+# OpenTelemetry core
+opentelemetry-api>=1.20.0
+opentelemetry-sdk>=1.20.0
+opentelemetry-semantic-conventions>=0.41b0
+
+# OpenTelemetry exporters
+opentelemetry-exporter-otlp>=1.20.0
+opentelemetry-exporter-prometheus>=0.41b0
+
+# Prometheus client (for metrics endpoint)
+prometheus-client>=0.19.0

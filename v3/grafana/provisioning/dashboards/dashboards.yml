@@ -1,0 +1,12 @@
+# Grafana dashboard provisioning
+apiVersion: 1
+
+providers:
+  - name: 'MCP Dashboards'
+    orgId: 1
+    folder: 'MCP'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

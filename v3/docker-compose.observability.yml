@@ -1,0 +1,109 @@
+# Docker Compose for MCP Server with Full Observability Stack
+#
+# Services:
+#   - mcp-server: The MCP server with OpenTelemetry
+#   - jaeger: Distributed tracing UI (http://localhost:16686)
+#   - prometheus: Metrics collection (http://localhost:9091)
+#   - grafana: Dashboards (http://localhost:3000, admin/admin)
+#
+# Usage:
+#   docker-compose -f docker-compose.observability.yml up -d
+#
+# Then access:
+#   - MCP Server: http://localhost:8000/health
+#   - Jaeger UI: http://localhost:16686
+#   - Prometheus: http://localhost:9091
+#   - Grafana: http://localhost:3000
+
+version: '3.8'
+
+services:
+  # =========================================================================
+  # MCP Server
+  # =========================================================================
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"   # MCP API
+      - "9090:9090"   # Prometheus metrics
+    environment:
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8000
+      - MCP_SERVER_NAME=mcp-observable-server
+      - OTEL_ENABLED=true
+      - OTEL_SERVICE_NAME=mcp-server
+      - OTEL_EXPORTER=otlp
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - METRICS_ENABLED=true
+      - METRICS_PORT=9090
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+    depends_on:
+      - jaeger
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # =========================================================================
+  # Jaeger - Distributed Tracing
+  # =========================================================================
+  jaeger:
+    image: jaegertracing/all-in-one:1.53
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - mcp-network
+
+  # =========================================================================
+  # Prometheus - Metrics
+  # =========================================================================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    networks:
+      - mcp-network
+
+  # =========================================================================
+  # Grafana - Dashboards
+  # =========================================================================
+  grafana:
+    image: grafana/grafana:10.2.0
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+      - jaeger
+    networks:
+      - mcp-network
+
+networks:
+  mcp-network:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:
